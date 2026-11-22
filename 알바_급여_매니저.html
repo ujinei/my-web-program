@@ -1,0 +1,240 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>알바 급여 매니저</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 30px 16px;
+  font-family: Arial, sans-serif;
+  background: #f5f3ff;
+  color: #29243b;
+}
+.container { max-width: 850px; margin: auto; }
+header {
+  background: linear-gradient(135deg,#7656d8,#a18bea);
+  color: white;
+  padding: 30px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+}
+header h1 { margin: 0 0 8px; }
+header p { margin: 0; opacity: .9; }
+.card {
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  margin-bottom: 18px;
+  box-shadow: 0 4px 15px #30205b0d;
+}
+h2 { font-size: 19px; margin-top: 0; }
+label { display: block; margin: 14px 0 7px; font-weight: bold; }
+input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd8ed;
+  border-radius: 9px;
+  font-size: 15px;
+}
+button {
+  border: 0;
+  border-radius: 9px;
+  padding: 12px 17px;
+  background: #7959d9;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 14px;
+}
+button:hover { background: #6242c2; }
+.delete { background: #e66b7c; margin: 0; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 12px;
+}
+.stat {
+  background: #f5f1ff;
+  padding: 18px;
+  border-radius: 12px;
+}
+.stat span { display: block; color: #777; font-size: 13px; }
+.stat strong { display: block; margin-top: 8px; font-size: 20px; }
+.record {
+  border: 1px solid #eee9f7;
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.record p { margin: 5px 0; font-size: 14px; color: #666; }
+.empty { color: #999; text-align: center; padding: 25px; }
+@media(max-width:600px) {
+  .stats { grid-template-columns: 1fr; }
+  .record { align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <h1>알바 급여 매니저</h1>
+  <p>나의 근무 시간과 예상 급여를 간편하게 관리해 보세요.</p>
+</header>
+
+<section class="card">
+  <h2>💰 시급 설정</h2>
+  <label for="wage">시급 (원)</label>
+  <input id="wage" type="number" min="0" value="10320">
+  <button onclick="saveWage()">시급 저장하기</button>
+</section>
+
+<section class="card">
+  <h2>📝 근무 내역 등록</h2>
+  <label for="date">근무 날짜</label>
+  <input id="date" type="date">
+  <label for="start">출근 시간</label>
+  <input id="start" type="time">
+  <label for="end">퇴근 시간</label>
+  <input id="end" type="time">
+  <button onclick="addRecord()">근무 내역 등록하기</button>
+</section>
+
+<section class="card">
+  <h2>📊 전체 근무 통계</h2>
+  <div class="stats">
+    <div class="stat">
+      <span>총 근무일수</span>
+      <strong id="days">0일</strong>
+    </div>
+    <div class="stat">
+      <span>총 근무시간</span>
+      <strong id="hours">0시간</strong>
+    </div>
+    <div class="stat">
+      <span>총 예상 급여</span>
+      <strong id="salary">0원</strong>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>📋 근무 내역 조회</h2>
+  <div id="records">
+    <div class="empty">등록된 근무 내역이 없습니다.</div>
+  </div>
+</section>
+</div>
+
+<script>
+let hourlyWage = 10320;
+let workRecords = [];
+
+document.getElementById("date").value =
+  new Date().toISOString().slice(0,10);
+
+function saveWage() {
+  const value = Number(document.getElementById("wage").value);
+  if (!Number.isFinite(value) || value <= 0) {
+    alert("올바른 시급을 입력해 주세요.");
+    return;
+  }
+  hourlyWage = value;
+  updateScreen();
+  alert("시급이 저장되었습니다.");
+}
+
+function addRecord() {
+  const date = document.getElementById("date").value;
+  const start = document.getElementById("start").value;
+  const end = document.getElementById("end").value;
+
+  if (!date || !start || !end) {
+    alert("날짜와 출퇴근 시간을 모두 입력해 주세요.");
+    return;
+  }
+
+  const toMinutes = time => {
+    const [h,m] = time.split(":").map(Number);
+    return h * 60 + m;
+  };
+
+  let startMin = toMinutes(start);
+  let endMin = toMinutes(end);
+
+  if (endMin <= startMin) endMin += 1440;
+
+  const minutes = endMin - startMin;
+
+  workRecords.push({
+    date, start, end, minutes
+  });
+
+  updateScreen();
+  alert("근무 내역이 등록되었습니다.");
+
+  document.getElementById("start").value = "";
+  document.getElementById("end").value = "";
+}
+
+function deleteRecord(index) {
+  if (confirm("이 근무 내역을 삭제할까요?")) {
+    workRecords.splice(index,1);
+    updateScreen();
+  }
+}
+
+function updateScreen() {
+  const totalMinutes = workRecords.reduce(
+    (sum,r) => sum + r.minutes, 0
+  );
+  const totalSalary = Math.round(
+    hourlyWage * totalMinutes / 60
+  );
+
+  document.getElementById("days").textContent =
+    workRecords.length + "일";
+  document.getElementById("hours").textContent =
+    Math.floor(totalMinutes / 60) + "시간 " +
+    (totalMinutes % 60) + "분";
+  document.getElementById("salary").textContent =
+    totalSalary.toLocaleString("ko-KR") + "원";
+
+  const area = document.getElementById("records");
+
+  if (workRecords.length === 0) {
+    area.innerHTML =
+      '<div class="empty">등록된 근무 내역이 없습니다.</div>';
+    return;
+  }
+
+  area.innerHTML = workRecords.map((r,i) => {
+    const h = Math.floor(r.minutes / 60);
+    const m = r.minutes % 60;
+    const pay = Math.round(hourlyWage * r.minutes / 60);
+
+    return `
+      <div class="record">
+        <div>
+          <strong>${r.date}</strong>
+          <p>${r.start} ~ ${r.end}</p>
+          <p>근무 시간: ${h}시간 ${m}분</p>
+          <p>예상 급여: ${pay.toLocaleString("ko-KR")}원</p>
+        </div>
+        <button class="delete" onclick="deleteRecord(${i})">
+          삭제
+        </button>
+      </div>
+    `;
+  }).join("");
+}
+</script>
+</body>
+</html>
